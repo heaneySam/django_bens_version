@@ -1,0 +1,7 @@
+# requirements.txt
+Django==5.2.*
+djangorestframework==3.14.*
+gunicorn>=20.1,<21.0
+sphinx>=4.5,<5.0
+sphinx-rtd-theme>=1.0,<2.0
+psycopg2-binary>=2.9,<3.0 

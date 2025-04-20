@@ -1,0 +1,19 @@
+# .gitignore
+# Virtualenvs
+   .venv/
+   venv/
+
+# Python artifacts
+   __pycache__/
+   *.py[cod]
+   *.so
+
+# Django artifacts
+   db.sqlite3
+   staticfiles/
+   api/migrations/
+
+# IDE/editor
+   .vscode/
+   .idea/
+   *.log
