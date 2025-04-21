@@ -226,7 +226,7 @@ class Coverage(models.Model):
                 expressions=[
                     ('buyer', RangeOperators.EQUAL),
                     ('underwriting_entity', RangeOperators.EQUAL),
-                    ('period', RangeOperators.OVERLAP),
+                    ('period', RangeOperators.OVERLAPS),
                 ],
                 index_type='GIST'
             )
