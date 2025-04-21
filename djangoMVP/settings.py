@@ -147,3 +147,6 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.JSONParser',
     ],
 }
+
+# Use our custom User model instead of the built-in one
+AUTH_USER_MODEL = 'api.User'
