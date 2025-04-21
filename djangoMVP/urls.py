@@ -19,6 +19,7 @@ from django.urls import path
 from api.views import health
 
 urlpatterns = [
+    path('', health, name='root'),
     path('admin/', admin.site.urls),
     path('health/', health, name='health'),
 ]
