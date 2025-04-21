@@ -1,0 +1,26 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+
+volumes:
+  pgdata: {} 

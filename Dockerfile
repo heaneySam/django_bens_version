@@ -21,13 +21,15 @@ COPY . .
 # Stage 2: runtime
 FROM python:3.12.3-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PATH="/install/bin:$PATH"
+    PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Copy installed dependencies and project files from builder
-COPY --from=builder /install /install
+# Copy installed dependencies into the system site-packages and bin
+COPY --from=builder /install/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /install/bin /usr/local/bin
+
+# Copy project files
 COPY --from=builder /app /app
 
 # Make sure entrypoint script is executable
