@@ -32,8 +32,11 @@ COPY --from=builder /install/bin /usr/local/bin
 # Copy project files
 COPY --from=builder /app /app
 
-# Make sure entrypoint script is executable
-RUN chmod +x ./entrypoint.sh
+# Convert entrypoint.sh to Unix line endings and make it executable
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends dos2unix \
+    && dos2unix entrypoint.sh \
+    && chmod +x entrypoint.sh
 
 EXPOSE 8000
 
