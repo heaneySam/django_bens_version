@@ -11,6 +11,7 @@ import simple_history.models
 import uuid
 from django.conf import settings
 from django.db import migrations, models
+from django.contrib.postgres.operations import BtreeGistExtension
 
 
 class Migration(migrations.Migration):
@@ -22,6 +23,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        BtreeGistExtension(),
         migrations.CreateModel(
             name='Country',
             fields=[
