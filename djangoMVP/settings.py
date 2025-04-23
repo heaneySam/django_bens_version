@@ -84,15 +84,19 @@ DATABASES = {
     }
 }
 
-# Override with PostgreSQL when POSTGRES_HOST is set
-if os.getenv('POSTGRES_HOST'):
+# Override with PostgreSQL when specific PostgreSQL host environment variables are set
+postgres_host = os.getenv('POSTGRES_HOST') or os.getenv('PGHOST')
+if postgres_host:
     DATABASES['default'] = {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', 'postgres'),
-        'USER': os.getenv('POSTGRES_USER', 'postgres'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
-        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
-        'PORT': os.getenv('POSTGRES_PORT', '5432'),
+        'NAME': os.getenv('POSTGRES_DB') or os.getenv('PGDATABASE') or 'postgres',
+        'USER': os.getenv('POSTGRES_USER') or os.getenv('PGUSER') or 'postgres',
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD') or os.getenv('PGPASSWORD') or '',
+        'HOST': postgres_host,
+        'PORT': os.getenv('POSTGRES_PORT') or os.getenv('PGPORT') or '5432',
+        'OPTIONS': {
+            'sslmode': os.getenv('POSTGRES_SSLMODE', os.getenv('PGSSLMODE', 'require')),
+        },
     }
 
 
