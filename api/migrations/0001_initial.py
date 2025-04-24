@@ -3,6 +3,7 @@
 import django.contrib.postgres.constraints
 import django.contrib.postgres.fields.ranges
 import django.contrib.postgres.indexes
+from django.contrib.postgres.operations import BtreeGistExtension
 import django.db.models.deletion
 import django.utils.timezone
 import simple_history.models
@@ -20,6 +21,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        BtreeGistExtension(),
         migrations.CreateModel(
             name='Country',
             fields=[
