@@ -43,6 +43,9 @@ INSTALLED_APPS = [
     'simple_history',
     'api',
     'corsheaders',
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
 ]
 
 MIDDLEWARE = [
@@ -52,6 +55,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -164,3 +168,12 @@ REST_FRAMEWORK = {
 AUTH_USER_MODEL = 'api.User'
 
 CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
+
+# Sites framework configuration
+SITE_ID = 1
+
+# Authentication backends for django-allauth
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]

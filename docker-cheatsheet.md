@@ -1,103 +1,127 @@
-## Getting Started
-- **Start all services** (in the foreground):  
-  ```bash
-  docker-compose up
-  ```
-- **Start in detached mode** (background):  
-  ```bash
-  docker-compose up -d
-  ```
-
-## Common Status & Inspection
-- **List running services** defined in your Compose file:  
-  ```bash
-  docker-compose ps
-  ```
-- **List all containers** (including stopped):  
-  ```bash
-  docker ps -a
-  ```
-- **Inspect a live container** (detailed JSON):  
-  ```bash
-  docker inspect <container_name>
-  ```
-
-## Stopping & Restarting
-- **Stop services** (graceful):  
-  ```bash
-  docker-compose stop
-  ```
-- **Start previously stopped services**:  
-  ```bash
-  docker-compose start
-  ```
-- **Restart services** (stop + start):  
-  ```bash
-  docker-compose restart
-  ```
-- **Restart a single container**:  
-  ```bash
-  docker restart <container_name>
-  ```
-
-## Debugging & Logs
-- **Show logs for all services**:  
-  ```bash
-  docker-compose logs
-  ```
-- **Follow logs in real time**:  
-  ```bash
-  docker-compose logs -f
-  ```
-- **Tail logs of a single container**:  
-  ```bash
-  docker logs -f <container_name>
-  ```
-
-## Rebuilding & Updating
-- **Build (or rebuild) images** defined in Compose:  
-  ```bash
-  docker-compose build
-  ```
-- **Rebuild and (re)create containers** in one go:  
-  ```bash
-  docker-compose up -d --build
-  ```
-- **Pull fresh versions of images** from registry:  
-  ```bash
-  docker-compose pull
-  ```
-
-## Advanced Compose Flags
-- **Specify an alternate Compose file**:  
-  ```bash
-  docker-compose -f docker-compose.override.yml up -d
-  ```
-- **Set a custom project name**:  
-  ```bash
-  docker-compose -p myapp up
-  ```
-
-## In-Container Operations
-- **Execute a shell** inside a running service container:  
-  ```bash
-  docker-compose exec web bash
-  ```
-- **Copy files between host and container**:  
-  ```bash
-  docker cp <container>:/path/in/container ./local/path
-  ```
-
-## Cleaning Up
-- **Stop and remove all containers, networks, volumes** created by Compose:  
-  ```bash
-  docker-compose down
-  ```
-- **Prune unused Docker objects** (containers, networks, images, build cache):  
-  ```bash
-  docker system prune
-  ```
+Here’s an updated, more visual and task-oriented Docker cheat-sheet in Markdown. I’ve grouped commands into clear “workflows,” added icons for quick scanning, and highlighted key tips and “stop” actions where appropriate.
 
 ---
 
-> **Tip:** For local development you often mount your code (`.:/app`), but remember this overrides what’s baked into the image. In production, drop the volume mount to use the image’s built-in files.
+## 🚀 Setup & Iteration
+
+> **Goal:** Quickly tear down any running containers, rebuild images, and spin up a fresh local environment.
+
+```powershell
+# 1. Ensure all containers are stopped and removed
+docker-compose down
+
+# 2. Build images and start services in detached mode
+docker-compose up -d --build
+```
+
+> 🔑 **Tip:** Use `docker-compose down` instead of `stop`+`rm` so networks and volumes from your Compose project are cleaned up too.
+
+---
+
+## 🔍 Status & Inspection
+
+### List Services & Containers
+
+```powershell
+# Show running Compose services
+docker-compose ps
+
+# Show all containers (running + stopped)
+docker ps -a
+```
+
+### Inspect Details
+
+```powershell
+# Detailed JSON info on a running container
+docker inspect <container_name>
+```
+
+---
+
+## 🛠️ Building & Updating
+
+```powershell
+# Rebuild images from Dockerfiles in your Compose file
+docker-compose build
+
+# Pull latest images from the registry
+docker-compose pull
+
+# Combine build + start
+docker-compose up -d --build
+```
+
+---
+
+## 📋 Logging & Debugging
+
+### Viewing Logs
+
+```powershell
+# Show logs for all Compose services
+docker-compose logs
+
+# Follow all logs in real time
+docker-compose logs -f
+
+# Tail logs for one container
+docker logs -f <container_name>
+```
+
+❓ **Stop “follow” mode:**  
+Press <kbd>Ctrl</kbd>+<kbd>C</kbd> to exit any “-f” (follow) log command.
+
+### Interactive Shell
+
+```powershell
+# Open a Bash shell inside the 'web' service container
+docker-compose exec web bash
+```
+
+❓ **Exit the shell:**  
+Type `exit` or press <kbd>Ctrl</kbd>+<kbd>D</kbd>.
+
+---
+
+## 📂 In-Container File Ops
+
+```powershell
+# Copy a file from container to host
+docker cp <container>:/path/in/container ./local/path
+
+# Copy a file from host into container
+docker cp ./local/path <container>:/path/in/container
+```
+
+---
+
+## 🧹 Cleaning Up
+
+```powershell
+# Stop and remove containers, networks, volumes created by Compose
+docker-compose down
+
+# Prune all unused Docker objects (containers, images, networks, build cache)
+docker system prune
+```
+
+> ⚠️ **Warning:** `docker system prune` is *destructive*—it will remove any stopped containers, dangling images, unused networks, and build cache.
+
+---
+
+## ⚙️ Advanced Compose Usage
+
+```powershell
+# Use an alternate Compose file
+docker-compose -f docker-compose.override.yml up -d
+
+# Override the project name (default is folder name)
+docker-compose -p myapp up
+```
+
+---
+
+> **Pro Tip:**  
+> - During development, mount your code into the container (`.:/app`) so edits appear instantly.  
+> - In production, omit the volume mount to use the code baked into the image.

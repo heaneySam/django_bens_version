@@ -1,5 +1,5 @@
 # Stage 1: builder
-FROM python:3.12.3-slim AS builder
+FROM python:3.13.3-slim AS builder
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
@@ -19,14 +19,14 @@ RUN pip install --upgrade pip \
 COPY . .
 
 # Stage 2: runtime
-FROM python:3.12.3-slim AS runtime
+FROM python:3.13.3-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
 # Copy installed dependencies into the system site-packages and bin
-COPY --from=builder /install/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /install/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 COPY --from=builder /install/bin /usr/local/bin
 
 # Copy project files
