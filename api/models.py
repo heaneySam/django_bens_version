@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import DateTimeRangeField, RangeOperators
 from django.contrib.postgres.indexes import GistIndex
 from django.contrib.postgres.constraints import ExclusionConstraint
@@ -11,9 +11,7 @@ import uuid
 # User and Enums
 # ---------------------------------------------------
 
-class User(AbstractUser):
-    """Use Django's built-in user; extend only when needed."""
-    pass
+User = get_user_model()
 
 class InsuranceType(models.TextChoices):
     QUOTA_SHARE    = 'QUOTA_SHARE',    'Quota Share'
@@ -224,8 +222,8 @@ class Coverage(models.Model):
             ExclusionConstraint(
                 name='no_overlap_per_buyer_entity',
                 expressions=[
-                    ('buyer', RangeOperators.EQUAL),
-                    ('underwriting_entity', RangeOperators.EQUAL),
+                    ('buyer_id', '='),
+                    ('underwriting_entity_id', '='),
                     ('period', RangeOperators.OVERLAPS),
                 ],
                 index_type='GIST'

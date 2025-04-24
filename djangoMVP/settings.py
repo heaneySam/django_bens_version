@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'simple_history',
     'api',
+    'apps.users',
     'corsheaders',
     'django.contrib.sites',
     'allauth',
@@ -165,7 +166,7 @@ REST_FRAMEWORK = {
 }
 
 # Use our custom User model instead of the built-in one
-AUTH_USER_MODEL = 'api.User'
+AUTH_USER_MODEL = 'users.User'
 
 CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
 
