@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
     'simple_history',
     'api',
     'apps.users',
@@ -47,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'allauth',
     'allauth.account',
+    'dj_rest_auth',
 ]
 
 MIDDLEWARE = [
@@ -67,7 +69,7 @@ ROOT_URLCONF = 'djangoMVP.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -163,12 +165,19 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ]
 }
 
 # Use our custom User model instead of the built-in one
 AUTH_USER_MODEL = 'users.User'
 
 CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
+CORS_ALLOW_CREDENTIALS = True
 
 # Sites framework configuration
 SITE_ID = 1
@@ -178,3 +187,36 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
+
+# Django Allauth Configuration (Focus on Magic Link)
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_LOGIN_BY_CODE_ENABLED = True
+ACCOUNT_SIGNUP_FORM_CLASS = None
+ACCOUNT_SIGNUP_FIELDS = ['email*']
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_PASSWORD_REQUIRED = False
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_AUTO_SIGNUP = True
+ACCOUNT_LOGOUT_ON_GET = False
+ACCOUNT_EMAIL_SUBJECT_PREFIX = '[Your Site] '
+ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
+ACCOUNT_PREVENT_ENUMERATION = True
+
+# Use Resend SMTP service for outgoing emails
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.resend.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'resend'
+# The Resend API key stored in .env under RESEND_API_KEY
+EMAIL_HOST_PASSWORD = os.getenv('RESEND_API_KEY')
+EMAIL_USE_TLS = True
+# Use your verified domain/email as the sender
+DEFAULT_FROM_EMAIL = 'app@creditriskwizard.com'
+
+# dj-rest-auth specific settings (optional customizations)
+REST_AUTH = {
+    'USER_DETAILS_SERIALIZER': 'dj_rest_auth.serializers.UserDetailsSerializer',
+    'USE_JWT': False,
+}

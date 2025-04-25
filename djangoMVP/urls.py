@@ -22,5 +22,13 @@ urlpatterns = [
     path('', health, name='root'),
     path('admin/', admin.site.urls),
     path('health/', health, name='health'),
-    path('accounts/', include('allauth.urls')),
+    path('accounts/', include('allauth.urls')), # Enable allauth views including account_signup
+
+    # dj-rest-auth URLs (Including main URLs)
+    # This should provide /api/auth/login/code/, /api/auth/login/code/confirm/, /api/auth/user/, /api/auth/logout/, etc.
+    path('api/auth/', include('dj_rest_auth.urls')),
+    # path('api/auth/registration/', include('dj_rest_auth.registration.urls')), # Removed: Causes ImproperlyConfigured error as socialaccount is not installed
+
+    # API endpoints from users app (Currently only User List)
+    path('api/', include('apps.users.urls')), # Includes /api/users/list/
 ]

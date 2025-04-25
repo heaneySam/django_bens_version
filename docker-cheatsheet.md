@@ -17,6 +17,14 @@ docker-compose up -d --build
 > 🔑 **Tip:** Use `docker-compose down` instead of `stop`+`rm` so networks and volumes from your Compose project are cleaned up too.
 
 ---
+## 🐍 Virtual Environments
+
+| Command                                    | What it does                                |
+|--------------------------------------------|---------------------------------------------|
+| .\.venv\Scripts\Activate.ps1               | Activate the virtualenv (Windows PowerShell)|
+| `deactivate`                               | Deactivate the current virtualenv           |
+
+
 
 ## 🔍 Status & Inspection
 
