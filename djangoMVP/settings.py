@@ -176,8 +176,10 @@ REST_FRAMEWORK = {
 # Use our custom User model instead of the built-in one
 AUTH_USER_MODEL = 'users.User'
 
-CORS_ALLOWED_ORIGINS = ["http://localhost:3000",
-                        "https://djangomvp.onrender.com",]
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "https://djangomvp.onrender.com",
+]
 CORS_ALLOW_CREDENTIALS = True
 
 # Sites framework configuration
