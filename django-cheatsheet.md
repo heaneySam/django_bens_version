@@ -20,7 +20,7 @@ Here’s a quick‐reference “Django manage.py” cheat-sheet organized by tas
 | `python manage.py runserver 0.0.0.0:8000`                           | Expose on all network interfaces (for VM/containers)           |
 | `python manage.py runserver --noreload`                             | Disable auto-reload (handy when debugging threading issues)    |
 | `python manage.py shell`                                            | Launch interactive Django shell (imports `settings`, ORM setup) |
-
+. .\.venv\Scripts\Activate.ps1  -- CRITICAL TO RUN THE VENV
 ---
 
 ## 🗄️ Database & Migrations
