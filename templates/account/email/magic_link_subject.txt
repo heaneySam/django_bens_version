@@ -1,0 +1,4 @@
+{% load i18n %}
+{% autoescape off %}
+{% blocktrans with site_name=site_name %}Your magic login link for {{ site_name }}{% endblocktrans %}
+{% endautoescape %} 

@@ -228,3 +228,7 @@ REST_AUTH = {
     'USER_DETAILS_SERIALIZER': 'dj_rest_auth.serializers.UserDetailsSerializer',
     'USE_JWT': False,
 }
+
+# Magic Link settings
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+MAGIC_LINK_EXPIRY_MINUTES = int(os.getenv('MAGIC_LINK_EXPIRY_MINUTES', '5'))

@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import UserListViewSet, RequestLoginCodeView, ConfirmLoginCodeView
+from .views import UserListViewSet, RequestLoginCodeView, ConfirmLoginCodeView, ConfirmMagicLinkView
 
 # Router for the admin user list viewset
 router = DefaultRouter()
@@ -14,4 +14,6 @@ urlpatterns = [
     # Custom Magic Link API endpoints
     path('auth/code/request/', RequestLoginCodeView.as_view(), name='api_request_code'),
     path('auth/code/confirm/', ConfirmLoginCodeView.as_view(), name='api_confirm_code'),
+    # Endpoint for click-to-login magic link confirm
+    path('auth/magic/confirm/', ConfirmMagicLinkView.as_view(), name='confirm_magic_link'),
 ] 

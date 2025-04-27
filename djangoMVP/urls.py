@@ -17,9 +17,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from api.views import health
+from apps.users.views import ConfirmMagicLinkView
 
 urlpatterns = [
     path('', health, name='root'),
+    # Magic link confirmation endpoint (Django view, bypasses DRF parsers)
+    path('api/auth/magic/confirm/', ConfirmMagicLinkView.as_view(), name='confirm_magic_link'),
     path('admin/', admin.site.urls),
     path('health/', health, name='health'),
     path('accounts/', include('allauth.urls')), # Enable allauth views including account_signup

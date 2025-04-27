@@ -1,0 +1,9 @@
+{% extends "account/email/base_message.txt" %}
+{% load account %}
+{% load i18n %}
+
+{% block content %}{% autoescape off %}{% blocktranslate %}Click the link below to sign you in:{% endblocktranslate %}{% endautoescape %}
+
+<a href="{{ magic_link_url }}">{{ magic_link_url }}</a>
+
+{% blocktranslate with expiry=expiry_minutes %}This link will expire in {{ expiry }} minutes and can only be used once.{% endblocktranslate %}{% endblock content %} 

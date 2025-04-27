@@ -1,0 +1,18 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% blocktrans %}Confirm Sign-In{% endblocktrans %}</title>
+</head>
+<body>
+  <h1>{% blocktrans %}Confirm Sign-In{% endblocktrans %}</h1>
+  <p>{% blocktrans %}Click the button below to complete sign-in.{% endblocktrans %}</p>
+  <form method="post" action="?format=json">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}" />
+    <input type="hidden" name="token" value="{{ token }}" />
+    <button type="submit">{% blocktrans %}Sign me in{% endblocktrans %}</button>
+  </form>
+  <p>{% blocktrans with url=confirm_url %}Or copy/paste this link into your browser: {{ url }}{% endblocktrans %}</p>
+</body>
+</html> 
