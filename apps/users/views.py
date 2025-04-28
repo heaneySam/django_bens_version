@@ -20,9 +20,14 @@ from allauth.account.adapter import get_adapter
 from rest_framework.authtoken.models import Token # Use DRF Token
 from allauth.account.internal import flows # Import the flows module
 from allauth.account.internal.stagekit import get_pending_stage, clear_login
-from .serializers import RequestLoginCodeSerializer, ConfirmLoginCodeSerializer # Need these serializers
+from .serializers import RequestMagicLinkSerializer # Need these serializers
 from rest_framework.parsers import FormParser, JSONParser
 from rest_framework.renderers import TemplateHTMLRenderer, JSONRenderer
+from django.contrib.auth import login as django_login
+from django.shortcuts import redirect
+from django.http import HttpResponseRedirect
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.utils.decorators import method_decorator
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +44,14 @@ class UserListViewSet(viewsets.ReadOnlyModelViewSet):
 
 # --- Magic Link API Views ---
 
-class RequestLoginCodeView(APIView):
+@method_decorator(csrf_exempt, name='dispatch')
+class RequestMagicLinkView(APIView):
     """
-    API endpoint to request a magic login code.
-    Uses allauth's RequestLoginCodeForm internally.
+    API endpoint to request a magic login link (MagicLink).
+    Uses allauth's user management internally.
     """
     permission_classes = [AllowAny]
-    serializer_class = RequestLoginCodeSerializer
+    serializer_class = RequestMagicLinkSerializer
 
     def post(self, request, *args, **kwargs):
         # Debug: dump all URL route names and test reversing signup
@@ -59,7 +65,7 @@ class RequestLoginCodeView(APIView):
                 logger.exception("Failed to reverse 'account_signup'")
         else:
             logger.warning("'account_signup' not found in URL names; signup link reverse will fail")
-        logger.debug("RequestLoginCodeView POST data: %s", request.data)
+        logger.debug("RequestMagicLinkView POST data: %s", request.data)
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data['email']
@@ -73,7 +79,7 @@ class RequestLoginCodeView(APIView):
             logger.debug("Initiate signature: %s", inspect.signature(flows.login_by_code.LoginCodeVerificationProcess.initiate))
             logger.debug("Initiating login-by-code: user=%r, email=%s", user, email)
             try:
-                # Create and send a MagicLink
+                # Create a MagicLink and build backend confirmation URL
                 magic_link = MagicLink.objects.create(user=user)
                 token = magic_link.token
                 confirm_path = reverse('confirm_magic_link')
@@ -95,91 +101,64 @@ class RequestLoginCodeView(APIView):
                 logger.exception("Exception during magic link creation for %s", email)
                 return Response({"detail": "Failed to create magic link."}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            logger.warning("RequestLoginCodeSerializer errors: %s", serializer.errors)
+            logger.warning("RequestMagicLinkSerializer errors: %s", serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class ConfirmLoginCodeView(APIView):
-    """
-    API endpoint to confirm a magic login code and get an auth token.
-    Uses allauth's ConfirmLoginCodeForm internally.
-    """
-    permission_classes = [AllowAny]
-    serializer_class = ConfirmLoginCodeSerializer
-
-    def post(self, request, *args, **kwargs):
-        # Debug URL names again before confirmation
-        url_names = list(get_resolver().reverse_dict.keys())
-        logger.debug("Available URL names at confirm: %s", url_names)
-        logger.debug("ConfirmLoginCodeView POST data: %s", request.data)
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data['email']
-            code = serializer.validated_data['code']
-            logger.debug("Resuming login-by-code: email=%s, code=%s", email, code)
-            # Resume and complete the login-by-code flow
-            # Retrieve the pending login stage from the session
-            stage = get_pending_stage(request._request)
-            if not stage:
-                logger.error("No login code process in progress for %s", email)
-                return Response({"detail": "No login code process in progress."}, status=status.HTTP_400_BAD_REQUEST)
-            try:
-                process = flows.login_by_code.LoginCodeVerificationProcess.resume(stage)
-                logger.debug("Process resumed: %r", process)
-                if not process:
-                    logger.error("No login code process in progress for %s", email)
-                    return Response({"detail": "No login code process in progress."}, status=status.HTTP_400_BAD_REQUEST)
-                logger.debug("Process state before confirm: %s", process.state)
-                # Verify the one-time code against the stored state
-                if code != process.code:
-                    logger.warning("Invalid or expired code for %s", email)
-                    return Response({"detail": "Invalid or expired code."}, status=status.HTTP_400_BAD_REQUEST)
-                # Clear the pending login/session state
-                clear_login(request._request)
-                # Issue a DRF auth token for the user
-                user = process.user
-                token, created = Token.objects.get_or_create(user=user)
-                logger.info("Authenticated user %s via magic code, token created=%s", user.pk, created)
-                return Response({"key": token.key}, status=status.HTTP_200_OK)
-            except Exception as e:
-                logger.exception("Exception during code confirmation for %s", email)
-                return Response({"detail": "Internal error during code confirmation."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        else:
-            logger.warning("ConfirmLoginCodeSerializer errors: %s", serializer.errors)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # ConfirmMagicLinkView: DRF-powered HTML GET form + JSON POST
+@method_decorator(csrf_exempt, name='dispatch')
 class ConfirmMagicLinkView(APIView):
-    """
-    API view to confirm magic link tokens: renders HTML form on GET, returns JWT JSON on POST.
-    Use ?format=json on POST to select JSONRenderer automatically.
-    """
+    # Skip DRF SessionAuthentication to avoid CSRF checks here
+    authentication_classes = []
     permission_classes = [AllowAny]
     parser_classes     = [FormParser, JSONParser]
     renderer_classes   = [TemplateHTMLRenderer, JSONRenderer]
 
-    def get_renderers(self):
-        # Force JSON on POST (for token response) and HTML on GET (for form)
-        if self.request.method == 'POST':
-            return [JSONRenderer()]
-        return [TemplateHTMLRenderer()]
-
     def get(self, request, *args, **kwargs):
+        # Debug: log incoming token and cookies
         token = request.GET.get('token')
-        logger.debug("ConfirmMagicLinkView GET token=%s", token)
-        # Validate link existence and expiry
+        logger.debug("ConfirmMagicLinkView GET called. token=%s", token)
+        logger.debug("Incoming request cookies: %s", request.COOKIES)
+        # Validate magic link and issue JWT tokens as cookies
         try:
             magic_link = MagicLink.objects.get(token=token)
         except MagicLink.DoesNotExist:
-            return Response(status=status.HTTP_400_BAD_REQUEST, template_name='users/magic_link_invalid.html')
+            return redirect(f"{settings.FRONTEND_URL}/?error=invalid_link")
         expiry = magic_link.created_at + timedelta(minutes=settings.MAGIC_LINK_EXPIRY_MINUTES)
         if timezone.now() > expiry or magic_link.used:
-            return Response(status=status.HTTP_400_BAD_REQUEST, template_name='users/magic_link_invalid.html')
-        # Render the confirmation form
-        context = {
-            'token': token,
-            'confirm_url': request.build_absolute_uri(),
-        }
-        return Response(context, template_name='users/magic_link_confirm.html')
+            return redirect(f"{settings.FRONTEND_URL}/?error=expired_link")
+        magic_link.used = True
+        magic_link.save()
+        user = magic_link.user
+        # Issue JWT tokens for the user
+        refresh = RefreshToken.for_user(user)
+        logger.debug("Issuing JWT tokens for user %s: access=%s refresh=%s", user.pk, refresh.access_token, refresh)
+        # Redirect to front-end with tokens set as HTTP-only cookies
+        response = HttpResponseRedirect(f"{settings.FRONTEND_URL}/?logged_in=1")
+        # Debug: list all Set-Cookie headers before sending
+        for name, morsel in response.cookies.items():
+            logger.debug("Set-Cookie header: %s", morsel.OutputString())
+        # Determine cookie security and sameSite based on environment
+        secure_cookie = not settings.DEBUG
+        samesite_mode = 'None' if secure_cookie else 'Lax'
+        # Set JWT cookies; in dev use Lax samesite over HTTP, in prod allow None with Secure
+        response.set_cookie(
+            'access_token',
+            str(refresh.access_token),
+            httponly=True,
+            secure=secure_cookie,
+            samesite=samesite_mode,
+            path='/'
+        )
+        response.set_cookie(
+            'refresh_token',
+            str(refresh),
+            httponly=True,
+            secure=secure_cookie,
+            samesite=samesite_mode,
+            path='/'
+        )
+        return response
 
     def post(self, request, *args, **kwargs):
         token = request.data.get('token')
@@ -194,9 +173,48 @@ class ConfirmMagicLinkView(APIView):
             return Response({"detail": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
         magic_link.used = True
         magic_link.save()
-        # Issue JWT tokens
-        refresh = RefreshToken.for_user(magic_link.user)
+        # Log in the user via Django session and return user info
+        user = magic_link.user
+        # Log in via AllAuth session backend
+        django_login(request._request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
         return Response({
-            "access": str(refresh.access_token),
-            "refresh": str(refresh)
+            "success": True,
+            "user": {
+                "id": str(user.id),
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+            }
         }, status=status.HTTP_200_OK)
+
+# Add session endpoint to return current authenticated user
+class SessionView(APIView):
+    """
+    API endpoint to retrieve the current user session (authenticated user info).
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        # Debug: inspect incoming cookies and header
+        logger.debug("SessionView GET called. cookies=%s HTTP_COOKIE=%s", request.COOKIES, request.META.get('HTTP_COOKIE'))
+        user = request.user
+        logger.debug("SessionView authentication status: user.is_authenticated=%s", user.is_authenticated)
+        if user.is_authenticated:
+            return Response({
+                'user': {
+                    'id': str(user.id),
+                    'email': user.email
+                }
+            })
+        return Response({'user': None})
+
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class CSRFCookieView(APIView):
+    """
+    API endpoint that ensures CSRF cookie is set.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        # Simply return a 200 so that the CSRF token cookie is set
+        return Response({"detail": "CSRF cookie set"}, status=status.HTTP_200_OK)

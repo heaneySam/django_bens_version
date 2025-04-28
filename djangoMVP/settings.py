@@ -169,7 +169,7 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.JSONParser',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
+        'apps.users.authentication.CookieJWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -187,8 +187,20 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_ALL_ORIGINS = False  # Not needed now that we have explicit origins
 CORS_ALLOW_CREDENTIALS = True
 
+# Allow session cookies in cross-site contexts (magic link flows)
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
+
 # Sites framework configuration
 SITE_ID = 1
+
+# Front-end base URL for magic link callback
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+
+# Trusted origins for CSRF (enable requests from frontend)
+CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
 
 # Authentication backends for django-allauth
 AUTHENTICATION_BACKENDS = [
@@ -230,5 +242,28 @@ REST_AUTH = {
 }
 
 # Magic Link settings
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 MAGIC_LINK_EXPIRY_MINUTES = int(os.getenv('MAGIC_LINK_EXPIRY_MINUTES', '5'))
+
+# Logging Configuration: emit debug logs to console
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        # Root logger: print all debug logs
+        '': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        # Optionally, limit noise by targeting your app's modules specifically
+        'apps.users': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}

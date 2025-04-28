@@ -17,18 +17,26 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from api.views import health
-from apps.users.views import ConfirmMagicLinkView
+from apps.users.views import (
+    ConfirmMagicLinkView,
+    RequestMagicLinkView,
+    SessionView,
+    CSRFCookieView,
+)
 
 urlpatterns = [
     path('', health, name='root'),
-    # Magic link confirmation endpoint (Django view, bypasses DRF parsers)
+    # Magic link confirmation and code endpoints
     path('api/auth/magic/confirm/', ConfirmMagicLinkView.as_view(), name='confirm_magic_link'),
+    path('api/auth/code/request/', RequestMagicLinkView.as_view(), name='api_request_code'),
+    # Session and CSRF endpoints
+    path('api/auth/session/', SessionView.as_view(), name='api_session'),
+    path('api/auth/csrf/', CSRFCookieView.as_view(), name='api_csrf'),
     path('admin/', admin.site.urls),
     path('health/', health, name='health'),
     path('accounts/', include('allauth.urls')), # Enable allauth views including account_signup
 
-    # dj-rest-auth URLs (Including main URLs)
-    # This should provide /api/auth/login/code/, /api/auth/login/code/confirm/, /api/auth/user/, /api/auth/logout/, etc.
+    # dj-rest-auth URLs (login, logout, user, password, etc.)
     path('api/auth/', include('dj_rest_auth.urls')),
     # path('api/auth/registration/', include('dj_rest_auth.registration.urls')), # Removed: Causes ImproperlyConfigured error as socialaccount is not installed
 
