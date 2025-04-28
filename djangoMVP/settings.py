@@ -28,7 +28,7 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = 'django-insecure-n-(6ttxh)k(1nr)ch+l*(9-+j7-%ox8_h1qab!j2qgm7%xo#y5'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['*']
 
@@ -189,9 +189,9 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Allow session cookies in cross-site contexts (magic link flows)
 SESSION_COOKIE_SAMESITE = 'None'
-SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = not DEBUG
 
 # Sites framework configuration
 SITE_ID = 1
@@ -200,7 +200,10 @@ SITE_ID = 1
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
 # Trusted origins for CSRF (enable requests from frontend)
-CSRF_TRUSTED_ORIGINS = [os.getenv('FRONTEND_URL', 'https://frontendmvp.vercel.app')]
+CSRF_TRUSTED_ORIGINS = [
+    "https://frontendmvp.vercel.app",
+    "http://localhost:3000",
+]
 
 # Authentication backends for django-allauth
 AUTHENTICATION_BACKENDS = [

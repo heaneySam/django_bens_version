@@ -151,7 +151,6 @@ class ConfirmMagicLinkView(APIView):
             secure=secure_cookie,
             samesite=samesite_mode,
             path='/',
-            domain=frontend_cookie_domain if frontend_cookie_domain else None
         )
         response.set_cookie(
             'refresh_token',
@@ -160,7 +159,6 @@ class ConfirmMagicLinkView(APIView):
             secure=secure_cookie,
             samesite=samesite_mode,
             path='/',
-            domain=frontend_cookie_domain if frontend_cookie_domain else None
         )
         for name, value in response.items():
             logger.debug(f"Response header: {name}: {value}")
@@ -208,7 +206,6 @@ class ConfirmMagicLinkView(APIView):
             secure=secure_cookie,
             samesite=samesite_mode,
             path='/',
-            domain=frontend_cookie_domain if frontend_cookie_domain else None
         )
         response.set_cookie(
             'refresh_token',
@@ -217,7 +214,6 @@ class ConfirmMagicLinkView(APIView):
             secure=secure_cookie,
             samesite=samesite_mode,
             path='/',
-            domain=frontend_cookie_domain if frontend_cookie_domain else None
         )
         for name, value in response.items():
             logger.debug(f"Response header: {name}: {value}")
