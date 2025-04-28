@@ -177,11 +177,14 @@ class ConfirmMagicLinkView(APIView):
             return Response({"detail": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
         magic_link.used = True
         magic_link.save()
-        # Log in the user via Django session and return user info
         user = magic_link.user
+        # Issue JWT tokens for the user
+        refresh = RefreshToken.for_user(user)
+        logger.debug("Issuing JWT tokens for user %s: access=%s refresh=%s", user.pk, refresh.access_token, refresh)
         # Log in via AllAuth session backend
         django_login(request._request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
-        return Response({
+        # Prepare response and set cookies
+        response = Response({
             "success": True,
             "user": {
                 "id": str(user.id),
@@ -190,6 +193,28 @@ class ConfirmMagicLinkView(APIView):
                 "last_name": user.last_name,
             }
         }, status=status.HTTP_200_OK)
+        secure_cookie = not settings.DEBUG
+        samesite_mode = 'None' if secure_cookie else 'Lax'
+        frontend_cookie_domain = os.getenv('FRONTEND_COOKIE_DOMAIN')
+        response.set_cookie(
+            'access_token',
+            str(refresh.access_token),
+            httponly=True,
+            secure=secure_cookie,
+            samesite=samesite_mode,
+            path='/',
+            domain=frontend_cookie_domain if frontend_cookie_domain else None
+        )
+        response.set_cookie(
+            'refresh_token',
+            str(refresh),
+            httponly=True,
+            secure=secure_cookie,
+            samesite=samesite_mode,
+            path='/',
+            domain=frontend_cookie_domain if frontend_cookie_domain else None
+        )
+        return response
 
 # Add session endpoint to return current authenticated user
 class SessionView(APIView):
