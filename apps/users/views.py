@@ -162,6 +162,11 @@ class ConfirmMagicLinkView(APIView):
             path='/',
             domain=frontend_cookie_domain if frontend_cookie_domain else None
         )
+        for name, value in response.items():
+            logger.debug(f"Response header: {name}: {value}")
+        for name, morsel in response.cookies.items():
+            logger.debug(f"Set-Cookie header: {morsel.OutputString()}")
+        logger.debug(f"Setting cookies for domain: {frontend_cookie_domain}")
         return response
 
     def post(self, request, *args, **kwargs):
@@ -214,6 +219,11 @@ class ConfirmMagicLinkView(APIView):
             path='/',
             domain=frontend_cookie_domain if frontend_cookie_domain else None
         )
+        for name, value in response.items():
+            logger.debug(f"Response header: {name}: {value}")
+        for name, morsel in response.cookies.items():
+            logger.debug(f"Set-Cookie header: {morsel.OutputString()}")
+        logger.debug(f"Setting cookies for domain: {frontend_cookie_domain}")
         return response
 
 # Add session endpoint to return current authenticated user
