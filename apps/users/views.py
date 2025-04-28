@@ -28,6 +28,7 @@ from django.shortcuts import redirect
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +142,8 @@ class ConfirmMagicLinkView(APIView):
         # Determine cookie security and sameSite based on environment
         secure_cookie = not settings.DEBUG
         samesite_mode = 'None' if secure_cookie else 'Lax'
+        # Get frontend cookie domain from env 
+        frontend_cookie_domain = os.getenv('FRONTEND_COOKIE_DOMAIN')
         # Set JWT cookies; in dev use Lax samesite over HTTP, in prod allow None with Secure
         response.set_cookie(
             'access_token',
@@ -148,7 +151,8 @@ class ConfirmMagicLinkView(APIView):
             httponly=True,
             secure=secure_cookie,
             samesite=samesite_mode,
-            path='/'
+            path='/',
+            domain=frontend_cookie_domain if frontend_cookie_domain else None
         )
         response.set_cookie(
             'refresh_token',
@@ -156,7 +160,8 @@ class ConfirmMagicLinkView(APIView):
             httponly=True,
             secure=secure_cookie,
             samesite=samesite_mode,
-            path='/'
+            path='/',
+            domain=frontend_cookie_domain if frontend_cookie_domain else None
         )
         return response
 
