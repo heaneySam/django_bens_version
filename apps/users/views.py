@@ -83,8 +83,7 @@ class RequestMagicLinkView(APIView):
                 # Create a MagicLink and build backend confirmation URL
                 magic_link = MagicLink.objects.create(user=user)
                 token = magic_link.token
-                confirm_path = reverse('confirm_magic_link')
-                confirm_url = request.build_absolute_uri(f"{confirm_path}?token={token}")
+                confirm_url = f"{settings.FRONTEND_URL}/confirm?token={token}"
                 site = Site.objects.get_current()
                 email_context = {
                     'site_name': site.name,
