@@ -200,7 +200,7 @@ SITE_ID = 1
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
 # Trusted origins for CSRF (enable requests from frontend)
-CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
+CSRF_TRUSTED_ORIGINS = [os.getenv('FRONTEND_URL', 'https://frontendmvp.vercel.app')]
 
 # Authentication backends for django-allauth
 AUTHENTICATION_BACKENDS = [
