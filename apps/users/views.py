@@ -83,7 +83,7 @@ class RequestMagicLinkView(APIView):
                 # Create a MagicLink and build backend confirmation URL
                 magic_link = MagicLink.objects.create(user=user)
                 token = magic_link.token
-                confirm_url = f"{settings.FRONTEND_URL}/confirm?token={token}"
+                confirm_url = f"{request.scheme}://{request.get_host()}/api/auth/magic/confirm/?token={token}"
                 site = Site.objects.get_current()
                 email_context = {
                     'site_name': site.name,
@@ -168,51 +168,11 @@ class ConfirmMagicLinkView(APIView):
         return response
 
     def post(self, request, *args, **kwargs):
-        token = request.data.get('token')
-        logger.debug("ConfirmMagicLinkView POST token=%s", token)
-        # Validate & consume token
-        try:
-            magic_link = MagicLink.objects.get(token=token)
-        except MagicLink.DoesNotExist:
-            return Response({"detail": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
-        expiry = magic_link.created_at + timedelta(minutes=settings.MAGIC_LINK_EXPIRY_MINUTES)
-        if timezone.now() > expiry or magic_link.used:
-            return Response({"detail": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
-        magic_link.used = True
-        magic_link.save()
-        user = magic_link.user
-        # Issue JWT tokens for the user
-        refresh = RefreshToken.for_user(user)
-        logger.debug("Issuing JWT tokens for user %s: access=%s refresh=%s", user.pk, refresh.access_token, refresh)
-        # Log in via AllAuth session backend
-        django_login(request._request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
-        # Prepare response and set cookies
-        response = Response({"success": True}, status=status.HTTP_200_OK)
-        secure_cookie = not settings.DEBUG
-        samesite_mode = 'None' if secure_cookie else 'Lax'
-        frontend_cookie_domain = os.getenv('FRONTEND_COOKIE_DOMAIN')
-        response.set_cookie(
-            'access_token',
-            str(refresh.access_token),
-            httponly=True,
-            secure=secure_cookie,
-            samesite=samesite_mode,
-            path='/',
+        # Disable JSON POST endpoint; use click-to-login via GET only
+        return Response(
+            {"detail": "Method not allowed. Please click the magic link in your email."},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
         )
-        response.set_cookie(
-            'refresh_token',
-            str(refresh),
-            httponly=True,
-            secure=secure_cookie,
-            samesite=samesite_mode,
-            path='/',
-        )
-        for name, value in response.items():
-            logger.debug(f"Response header: {name}: {value}")
-        for name, morsel in response.cookies.items():
-            logger.debug(f"Set-Cookie header: {morsel.OutputString()}")
-        logger.debug(f"Setting cookies for domain: {frontend_cookie_domain}")
-        return response
 
 # Add session endpoint to return current authenticated user
 class SessionView(APIView):
