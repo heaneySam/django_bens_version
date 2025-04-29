@@ -147,7 +147,6 @@ class ConfirmMagicLinkView(APIView):
         response.set_cookie(
             'access_token',
             str(refresh.access_token),
-            domain=frontend_cookie_domain,
             httponly=True,
             secure=secure_cookie,
             samesite=samesite_mode,
@@ -156,7 +155,6 @@ class ConfirmMagicLinkView(APIView):
         response.set_cookie(
             'refresh_token',
             str(refresh),
-            domain=frontend_cookie_domain,
             httponly=True,
             secure=secure_cookie,
             samesite=samesite_mode,
