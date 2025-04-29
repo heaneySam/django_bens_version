@@ -141,12 +141,14 @@ class ConfirmMagicLinkView(APIView):
         # Determine cookie security and sameSite based on environment
         secure_cookie = not settings.DEBUG
         samesite_mode = 'None' if secure_cookie else 'Lax'
+    
         # Get frontend cookie domain from env 
-        frontend_cookie_domain = os.getenv('FRONTEND_COOKIE_DOMAIN')
+        # frontend_cookie_domain = os.getenv('FRONTEND_COOKIE_DOMAIN') # Removed this line
         # Set JWT cookies; in dev use Lax samesite over HTTP, in prod allow None with Secure
         response.set_cookie(
             'access_token',
             str(refresh.access_token),
+            # domain=frontend_cookie_domain, # Removed this line
             httponly=True,
             secure=secure_cookie,
             samesite=samesite_mode,
@@ -155,6 +157,7 @@ class ConfirmMagicLinkView(APIView):
         response.set_cookie(
             'refresh_token',
             str(refresh),
+            # domain=frontend_cookie_domain, # Removed this line
             httponly=True,
             secure=secure_cookie,
             samesite=samesite_mode,
@@ -164,7 +167,7 @@ class ConfirmMagicLinkView(APIView):
             logger.debug(f"Response header: {name}: {value}")
         for name, morsel in response.cookies.items():
             logger.debug(f"Set-Cookie header: {morsel.OutputString()}")
-        logger.debug(f"Setting cookies for domain: {frontend_cookie_domain}")
+        # logger.debug(f"Setting cookies for domain: {frontend_cookie_domain}") # Removed this line
         return response
 
     def post(self, request, *args, **kwargs):
