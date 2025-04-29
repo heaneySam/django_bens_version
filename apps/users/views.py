@@ -187,15 +187,7 @@ class ConfirmMagicLinkView(APIView):
         # Log in via AllAuth session backend
         django_login(request._request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
         # Prepare response and set cookies
-        response = Response({
-            "success": True,
-            "user": {
-                "id": str(user.id),
-                "email": user.email,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-            }
-        }, status=status.HTTP_200_OK)
+        response = Response({"success": True}, status=status.HTTP_200_OK)
         secure_cookie = not settings.DEBUG
         samesite_mode = 'None' if secure_cookie else 'Lax'
         frontend_cookie_domain = os.getenv('FRONTEND_COOKIE_DOMAIN')
@@ -253,3 +245,28 @@ class CSRFCookieView(APIView):
     def get(self, request, *args, **kwargs):
         # Simply return a 200 so that the CSRF token cookie is set
         return Response({"detail": "CSRF cookie set"}, status=status.HTTP_200_OK)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class LogoutView(APIView):
+    """
+    API endpoint to log out the current user by blacklisting the refresh token
+    and clearing authentication cookies.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        # Blacklist the refresh token from the cookie, if present
+        refresh_token = request.COOKIES.get('refresh_token')
+        if refresh_token:
+            try:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+                logger.debug("Blacklisted refresh token %s", refresh_token)
+            except Exception as e:
+                logger.exception("Failed to blacklist refresh token: %s", e)
+
+        # Prepare response and clear cookies on client
+        response = Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
+        response.delete_cookie('access_token', path='/')
+        response.delete_cookie('refresh_token', path='/')
+        return response

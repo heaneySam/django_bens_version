@@ -22,6 +22,7 @@ from apps.users.views import (
     RequestMagicLinkView,
     SessionView,
     CSRFCookieView,
+    LogoutView,
 )
 
 urlpatterns = [
@@ -36,6 +37,8 @@ urlpatterns = [
     path('health/', health, name='health'),
     path('accounts/', include('allauth.urls')), # Enable allauth views including account_signup
 
+    # Custom logout endpoint to blacklist tokens and clear cookies
+    path('api/auth/logout/', LogoutView.as_view(), name='api_logout'),
     # dj-rest-auth URLs (login, logout, user, password, etc.)
     path('api/auth/', include('dj_rest_auth.urls')),
     # path('api/auth/registration/', include('dj_rest_auth.registration.urls')), # Removed: Causes ImproperlyConfigured error as socialaccount is not installed
