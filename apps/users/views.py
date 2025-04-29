@@ -134,7 +134,7 @@ class ConfirmMagicLinkView(APIView):
         refresh = RefreshToken.for_user(user)
         logger.debug("Issuing JWT tokens for user %s: access=%s refresh=%s", user.pk, refresh.access_token, refresh)
         # Redirect to front-end with tokens set as HTTP-only cookies
-        response = HttpResponseRedirect(f"{settings.FRONTEND_URL}/?logged_in=1")
+        response = HttpResponseRedirect(f"{settings.FRONTEND_URL}/")
         # Debug: list all Set-Cookie headers before sending
         for name, morsel in response.cookies.items():
             logger.debug("Set-Cookie header: %s", morsel.OutputString())
@@ -147,6 +147,7 @@ class ConfirmMagicLinkView(APIView):
         response.set_cookie(
             'access_token',
             str(refresh.access_token),
+            domain=frontend_cookie_domain,
             httponly=True,
             secure=secure_cookie,
             samesite=samesite_mode,
@@ -155,6 +156,7 @@ class ConfirmMagicLinkView(APIView):
         response.set_cookie(
             'refresh_token',
             str(refresh),
+            domain=frontend_cookie_domain,
             httponly=True,
             secure=secure_cookie,
             samesite=samesite_mode,
