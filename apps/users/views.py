@@ -134,39 +134,39 @@ class ConfirmMagicLinkView(APIView):
         # Issue JWT tokens for the user
         refresh = RefreshToken.for_user(user)
         logger.debug("Issuing JWT tokens for user %s: access=%s refresh=%s", user.pk, refresh.access_token, refresh)
-        # Redirect to front-end with tokens set as HTTP-only cookies
+        # Prepare token payload for proxy use
+        token_data = {
+            'access_token': str(refresh.access_token),
+            'refresh_token': str(refresh),
+        }
+        # If the client expects JSON (proxy), return tokens and skip cookie-setting
+        accept_header = request.META.get('HTTP_ACCEPT', '')
+        if 'application/json' in accept_header:
+            return Response(token_data, status=status.HTTP_200_OK)
+        # Else fall back to HTML flow: set backend-domain cookies and redirect
         response = HttpResponseRedirect(f"{settings.FRONTEND_URL}")
         # Debug: list all Set-Cookie headers before sending
         for name, morsel in response.cookies.items():
             logger.debug("Set-Cookie header: %s", morsel.OutputString())
-        # Always use Secure and SameSite=None for cross-site cookie transmission
-        secure_cookie = True
-        samesite_mode = 'None'
-    
-        # Get frontend cookie domain from env 
-        # frontend_cookie_domain = os.getenv('FRONTEND_COOKIE_DOMAIN') # Removed this line
-        # Set JWT cookies; in dev use Lax samesite over HTTP, in prod allow None with Secure
-        response.set_cookie(
-            'access_token',
-            str(refresh.access_token),
-            httponly=True,
-            secure=secure_cookie,
-            samesite=samesite_mode,
-            path='/',
-        )
-        response.set_cookie(
-            'refresh_token',
-            str(refresh),
-            httponly=True,
-            secure=secure_cookie,
-            samesite=samesite_mode,
-            path='/',
-        )
+        # Determine cookie attributes based on environment
+        secure_cookie = not settings.DEBUG
+        samesite_mode = 'Lax' if settings.DEBUG else 'None'
+        cookie_kwargs = {
+            'httponly': True,
+            'secure': secure_cookie,
+            'samesite': samesite_mode,
+            'path': '/',
+        }
+        frontend_domain = os.getenv('FRONTEND_COOKIE_DOMAIN')
+        if frontend_domain:
+            cookie_kwargs['domain'] = frontend_domain
+        # Set JWT cookies with appropriate attributes for HTML clients
+        response.set_cookie('access_token', str(refresh.access_token), **cookie_kwargs)
+        response.set_cookie('refresh_token', str(refresh), **cookie_kwargs)
         for name, value in response.items():
             logger.debug(f"Response header: {name}: {value}")
         for name, morsel in response.cookies.items():
             logger.debug(f"Set-Cookie header: {morsel.OutputString()}")
-        # logger.debug(f"Setting cookies for domain: {frontend_cookie_domain}") # Removed this line
         return response
 
     def post(self, request, *args, **kwargs):
