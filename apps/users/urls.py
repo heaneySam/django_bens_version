@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import UserListViewSet, RequestMagicLinkView, ConfirmMagicLinkView, SessionView, CSRFCookieView
+from .views import UserListViewSet, RequestMagicLinkView, ConfirmMagicLinkView, SessionView, CSRFCookieView, TokenRefreshView
 
 # Router for the admin user list viewset
 router = DefaultRouter()
@@ -19,4 +19,5 @@ urlpatterns = [
     path('auth/session/', SessionView.as_view(), name='api_session'),
     # CSRF token setter
     path('auth/csrf/', CSRFCookieView.as_view(), name='api_csrf'),
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ] 

@@ -29,6 +29,7 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 import os
+from rest_framework_simplejwt.exceptions import TokenError
 
 logger = logging.getLogger(__name__)
 
@@ -134,13 +135,13 @@ class ConfirmMagicLinkView(APIView):
         refresh = RefreshToken.for_user(user)
         logger.debug("Issuing JWT tokens for user %s: access=%s refresh=%s", user.pk, refresh.access_token, refresh)
         # Redirect to front-end with tokens set as HTTP-only cookies
-        response = HttpResponseRedirect(f"{settings.FRONTEND_URL}/")
+        response = HttpResponseRedirect(f"{settings.FRONTEND_URL}")
         # Debug: list all Set-Cookie headers before sending
         for name, morsel in response.cookies.items():
             logger.debug("Set-Cookie header: %s", morsel.OutputString())
-        # Determine cookie security and sameSite based on environment
-        secure_cookie = not settings.DEBUG
-        samesite_mode = 'None' if secure_cookie else 'Lax'
+        # Always use Secure and SameSite=None for cross-site cookie transmission
+        secure_cookie = True
+        samesite_mode = 'None'
     
         # Get frontend cookie domain from env 
         # frontend_cookie_domain = os.getenv('FRONTEND_COOKIE_DOMAIN') # Removed this line
@@ -148,7 +149,6 @@ class ConfirmMagicLinkView(APIView):
         response.set_cookie(
             'access_token',
             str(refresh.access_token),
-            # domain=frontend_cookie_domain, # Removed this line
             httponly=True,
             secure=secure_cookie,
             samesite=samesite_mode,
@@ -157,7 +157,6 @@ class ConfirmMagicLinkView(APIView):
         response.set_cookie(
             'refresh_token',
             str(refresh),
-            # domain=frontend_cookie_domain, # Removed this line
             httponly=True,
             secure=secure_cookie,
             samesite=samesite_mode,
@@ -197,6 +196,45 @@ class SessionView(APIView):
                 }
             })
         return Response({'user': None})
+
+# Token refresh view to issue new access tokens from refresh_token cookie
+@method_decorator(csrf_exempt, name='dispatch')
+class TokenRefreshView(APIView):
+    """
+    API endpoint to refresh JWT access token using the refresh token stored in HttpOnly cookie.
+    """
+    permission_classes = [AllowAny]
+
+    def initial(self, request, *args, **kwargs):
+        # Log entry into the refresh endpoint and incoming cookies
+        logger.debug("TokenRefreshView initial, cookies=%s", request.COOKIES)
+        return super().initial(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get('refresh_token')
+        logger.debug("TokenRefreshView invoked. refresh_token cookie: %s", refresh_token)
+        if not refresh_token:
+            return Response({"detail": "Refresh token not provided."}, status=status.HTTP_401_UNAUTHORIZED)
+        try:
+            refresh = RefreshToken(refresh_token)
+        except TokenError:
+            logger.warning("TokenRefreshView invalid refresh token: %s", refresh_token)
+            return Response({"detail": "Invalid refresh token."}, status=status.HTTP_401_UNAUTHORIZED)
+        access_token = str(refresh.access_token)
+        logger.debug("TokenRefreshView issuing new access_token: %s", access_token)
+        response = Response({"access_token": access_token}, status=status.HTTP_200_OK)
+        # Always use Secure and SameSite=None for cross-site cookie transmission
+        secure_cookie = True
+        samesite_mode = 'None'
+        response.set_cookie(
+            'access_token',
+            access_token,
+            httponly=True,
+            secure=secure_cookie,
+            samesite=samesite_mode,
+            path='/',
+        )
+        return response
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
 class CSRFCookieView(APIView):
