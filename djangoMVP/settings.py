@@ -184,7 +184,9 @@ AUTH_USER_MODEL = 'users.User'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",                # local dev Next.js
     "https://frontendmvp.vercel.app",       # deployed front-end origin
-    "https://djangomvp.onrender.com",        # Django backend origin
+    "https://djangomvp.onrender.com",
+    "https://riskwizard.dev",
+    "https://api.riskwizard.dev",        # Django backend origin
 ]
 CORS_ALLOW_ALL_ORIGINS = False  # Not needed now that we have explicit origins
 CORS_ALLOW_CREDENTIALS = True
