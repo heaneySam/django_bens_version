@@ -268,13 +268,14 @@ class LogoutView(APIView):
 
         # Prepare response and clear cookies on client, using FRONTEND_COOKIE_DOMAIN
         response = Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
-        # Delete cookies using the same domain they were set (FRONTEND_COOKIE_DOMAIN)
-        frontend_cookie_domain = os.getenv('FRONTEND_COOKIE_DOMAIN', None)
+        # Determine which domain was used when setting cookies
+        frontend_cookie_domain = getattr(settings, 'FRONTEND_COOKIE_DOMAIN', None)
+        logger.debug("LogoutView: FRONTEND_COOKIE_DOMAIN=%r", frontend_cookie_domain)
         if frontend_cookie_domain:
             response.delete_cookie('access_token', path='/', domain=frontend_cookie_domain)
             response.delete_cookie('refresh_token', path='/', domain=frontend_cookie_domain)
         else:
-            # fallback to host-only cookies
+            # fallback: delete host-only (per-render host) cookies
             response.delete_cookie('access_token', path='/')
             response.delete_cookie('refresh_token', path='/')
         return response

@@ -198,6 +198,8 @@ CORS_ALLOW_CREDENTIALS = True
 # Front-end base URL for magic link callback
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
+# Domain to share authentication cookies across frontend/backend subdomains
+FRONTEND_COOKIE_DOMAIN = os.getenv("FRONTEND_COOKIE_DOMAIN", None)
 
 # Authentication backends for django-allauth
 AUTHENTICATION_BACKENDS = [
