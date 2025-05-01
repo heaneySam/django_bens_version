@@ -90,7 +90,7 @@ class RequestMagicLinkView(APIView):
                     'site_name': site.name,
                     'site_domain': site.domain,
                     'magic_link_url': confirm_url,
-                    'expiry_minutes': settings.MAGIC_LINK_EXPIRY_MINUTES,
+                    'expiry_minutes': settings.base.MAGIC_LINK_EXPIRY_MINUTES,
                     'user': user,
                 }
                 subject = render_to_string('account/email/magic_link_subject.txt', email_context).strip()
@@ -125,9 +125,9 @@ class ConfirmMagicLinkView(APIView):
             magic_link = MagicLink.objects.get(token=token)
         except MagicLink.DoesNotExist:
             return redirect(f"{settings.FRONTEND_URL}/?error=invalid_link")
-        expiry = magic_link.created_at + timedelta(minutes=settings.MAGIC_LINK_EXPIRY_MINUTES)
+        expiry = magic_link.created_at + timedelta(minutes=settings.baseMAGIC_LINK_EXPIRY_MINUTES)
         if timezone.now() > expiry or magic_link.used:
-            return redirect(f"{settings.FRONTEND_URL}/?error=expired_link")
+            return redirect(f"{settings.base.FRONTEND_URL}/?error=expired_link")
         magic_link.used = True
         magic_link.save()
         user = magic_link.user
@@ -144,7 +144,7 @@ class ConfirmMagicLinkView(APIView):
         if 'application/json' in accept_header:
             return Response(token_data, status=status.HTTP_200_OK)
         # Else fall back to HTML flow: set backend-domain cookies and redirect
-        response = HttpResponseRedirect(f"{settings.FRONTEND_URL}")
+        response = HttpResponseRedirect(f"{settings.base.FRONTEND_URL}")
         # Debug: list all Set-Cookie headers before sending
         for name, morsel in response.cookies.items():
             logger.debug("Set-Cookie header: %s", morsel.OutputString())
