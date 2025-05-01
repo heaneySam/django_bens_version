@@ -157,9 +157,6 @@ class ConfirmMagicLinkView(APIView):
             'samesite': samesite_mode,
             'path': '/',
         }
-        frontend_domain = os.getenv('FRONTEND_COOKIE_DOMAIN')
-        if frontend_domain:
-            cookie_kwargs['domain'] = frontend_domain
         # Set JWT cookies with appropriate attributes for HTML clients
         response.set_cookie('access_token', str(refresh.access_token), **cookie_kwargs)
         response.set_cookie('refresh_token', str(refresh), **cookie_kwargs)
