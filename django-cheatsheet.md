@@ -87,6 +87,8 @@ Here’s a quick‐reference “Django manage.py” cheat-sheet organized by tas
   ```
 - **Debug toolbar**: add `debug_toolbar` to `INSTALLED_APPS` and include its URLs for in-page SQL/CPU profiling.
 
+- **Generate Secret Key** :
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
 ---
 
 Keep this sheet handy, and you’ll breeze through development, testing, data management, and deployment without missing a beat!
