@@ -266,8 +266,15 @@ class LogoutView(APIView):
             except Exception as e:
                 logger.exception("Failed to blacklist refresh token: %s", e)
 
-        # Prepare response and clear cookies on client
+        # Prepare response and clear cookies on client, using FRONTEND_COOKIE_DOMAIN
         response = Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
-        response.delete_cookie('access_token', path='/')
-        response.delete_cookie('refresh_token', path='/')
+        # Delete cookies using the same domain they were set (FRONTEND_COOKIE_DOMAIN)
+        frontend_cookie_domain = os.getenv('FRONTEND_COOKIE_DOMAIN', None)
+        if frontend_cookie_domain:
+            response.delete_cookie('access_token', path='/', domain=frontend_cookie_domain)
+            response.delete_cookie('refresh_token', path='/', domain=frontend_cookie_domain)
+        else:
+            # fallback to host-only cookies
+            response.delete_cookie('access_token', path='/')
+            response.delete_cookie('refresh_token', path='/')
         return response

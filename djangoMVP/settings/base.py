@@ -191,6 +191,7 @@ SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SAMESITE = "None"
 CSRF_COOKIE_SECURE = False
 
+
 # CORS defaults (override per environment)
 CORS_ALLOW_CREDENTIALS = True
 
