@@ -95,7 +95,7 @@ class RequestMagicLinkView(APIView):
                 }
                 subject = render_to_string('account/email/magic_link_subject.txt', email_context).strip()
                 message = render_to_string('account/email/magic_link_message.txt', email_context)
-                send_mail(subject, message, settings.base.DEFAULT_FROM_EMAIL, [email])
+                send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [email])
                 logger.info("Magic link sent to %s", email)
                 return Response({"detail": "Magic link sent. Check your email."}, status=status.HTTP_200_OK)
             except Exception as e:
@@ -124,10 +124,10 @@ class ConfirmMagicLinkView(APIView):
         try:
             magic_link = MagicLink.objects.get(token=token)
         except MagicLink.DoesNotExist:
-            return redirect(f"{settings.base.FRONTEND_URL}/?error=invalid_link")
-        expiry = magic_link.created_at + timedelta(minutes=settings.base.MAGIC_LINK_EXPIRY_MINUTES)
+            return redirect(f"{settings.FRONTEND_URL}/?error=invalid_link")
+        expiry = magic_link.created_at + timedelta(minutes=settings.MAGIC_LINK_EXPIRY_MINUTES)
         if timezone.now() > expiry or magic_link.used:
-            return redirect(f"{settings.base.FRONTEND_URL}/?error=expired_link")
+            return redirect(f"{settings.FRONTEND_URL}/?error=expired_link")
         magic_link.used = True
         magic_link.save()
         user = magic_link.user
@@ -144,13 +144,13 @@ class ConfirmMagicLinkView(APIView):
         if 'application/json' in accept_header:
             return Response(token_data, status=status.HTTP_200_OK)
         # Else fall back to HTML flow: set backend-domain cookies and redirect
-        response = HttpResponseRedirect(f"{settings.base.FRONTEND_URL}")
+        response = HttpResponseRedirect(f"{settings.FRONTEND_URL}")
         # Debug: list all Set-Cookie headers before sending
         for name, morsel in response.cookies.items():
             logger.debug("Set-Cookie header: %s", morsel.OutputString())
         # Determine cookie attributes based on environment
-        secure_cookie = not settings.base.DEBUG
-        samesite_mode = 'Lax' if settings.base.DEBUG else 'None'
+        secure_cookie = not settings.DEBUG
+        samesite_mode = 'Lax' if settings.DEBUG else 'None'
         cookie_kwargs = {
             'httponly': True,
             'secure': secure_cookie,
