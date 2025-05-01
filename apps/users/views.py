@@ -90,7 +90,7 @@ class RequestMagicLinkView(APIView):
                     'site_name': site.name,
                     'site_domain': site.domain,
                     'magic_link_url': confirm_url,
-                    'expiry_minutes': settings.base.MAGIC_LINK_EXPIRY_MINUTES,
+                    'expiry_minutes': settings.MAGIC_LINK_EXPIRY_MINUTES,
                     'user': user,
                 }
                 subject = render_to_string('account/email/magic_link_subject.txt', email_context).strip()
