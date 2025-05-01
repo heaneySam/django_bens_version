@@ -10,11 +10,16 @@ ALLOWED_HOSTS = [
 ]
 
 # CORS settings for production
+# tells Django which origins can make cross-site HTTP requests.
 CORS_ALLOWED_ORIGINS = [
     "https://riskwizard.dev",
+    "https://www.riskwizard.dev",
 ]
+
+# tells Django’s own CSRF machinery when you’re using CSRF_TRUSTED_ORIGINS (Django≥4.0) to allow cookies on cross-site POSTs.
 CSRF_TRUSTED_ORIGINS = [
     "https://riskwizard.dev",
+    "https://www.riskwizard.dev",   # your actual front-end origin
 ]
 
 # Security Hardening
