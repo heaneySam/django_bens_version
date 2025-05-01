@@ -196,3 +196,26 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Front-end base URL for magic link callback
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+
+# Authentication backends for django-allauth
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# Django Allauth Configuration (Focus on Magic Link)
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_LOGIN_BY_CODE_ENABLED = True
+ACCOUNT_SIGNUP_FORM_CLASS = None
+ACCOUNT_SIGNUP_FIELDS = ['email*']
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_PASSWORD_REQUIRED = False
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_AUTO_SIGNUP = True
+ACCOUNT_LOGOUT_ON_GET = False
+ACCOUNT_EMAIL_SUBJECT_PREFIX = '[Your Site] '
+ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
+ACCOUNT_PREVENT_ENUMERATION = True
