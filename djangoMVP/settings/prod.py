@@ -7,6 +7,7 @@ DEBUG = False
 # Allowed hosts for production
 ALLOWED_HOSTS = [
     "api.riskwizard.dev",
+    "djangomvp.onrender.com",
 ]
 
 # CORS settings for production
