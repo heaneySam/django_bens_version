@@ -26,9 +26,13 @@ python -c "from django.core.management.utils import get_random_secret_key; print
 import os
 from pathlib import Path
 from datetime import timedelta
+import dj_database_url
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+# Load environment variables from a .env file if present (for local development)
+load_dotenv(BASE_DIR / '.env')
 
 # SECURITY
 # Placeholder secret key; override via environment variable in production
@@ -99,6 +103,26 @@ DATABASES = {
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+
+# Override with PostgreSQL when specific PostgreSQL host environment variables are set
+postgres_host = os.getenv('POSTGRES_HOST') or os.getenv('PGHOST')
+if postgres_host:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB') or os.getenv('PGDATABASE') or 'postgres',
+        'USER': os.getenv('POSTGRES_USER') or os.getenv('PGUSER') or 'postgres',
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD') or os.getenv('PGPASSWORD') or '',
+        'HOST': postgres_host,
+        'PORT': os.getenv('POSTGRES_PORT') or os.getenv('PGPORT') or '5432',
+        'OPTIONS': {
+            'sslmode': os.getenv('POSTGRES_SSLMODE', os.getenv('PGSSLMODE', 'require')),
+        },
+    }
+
+# Use DATABASE_URL if provided
+database_url = os.getenv('DATABASE_URL')
+if database_url:
+    DATABASES['default'] = dj_database_url.parse(database_url, conn_max_age=600, ssl_require=True)
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
