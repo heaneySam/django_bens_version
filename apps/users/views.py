@@ -156,6 +156,8 @@ class ConfirmMagicLinkView(APIView):
             'secure': secure_cookie,
             'samesite': samesite_mode,
             'path': '/',
+            'domain': settings.FRONTEND_COOKIE_DOMAIN,  # e.g. ".riskwizard.dev"
+
         }
         # Set JWT cookies with appropriate attributes for HTML clients
         response.set_cookie('access_token', str(refresh.access_token), **cookie_kwargs)
@@ -265,14 +267,24 @@ class LogoutView(APIView):
 
         # Prepare response and clear cookies on client, using FRONTEND_COOKIE_DOMAIN
         response = Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
-        # Determine which domain was used when setting cookies
-        frontend_cookie_domain = getattr(settings, 'FRONTEND_COOKIE_DOMAIN', None)
-        logger.debug("LogoutView: FRONTEND_COOKIE_DOMAIN=%r", frontend_cookie_domain)
-        if frontend_cookie_domain:
-            response.delete_cookie('access_token', path='/', domain=frontend_cookie_domain)
-            response.delete_cookie('refresh_token', path='/', domain=frontend_cookie_domain)
-        else:
-            # fallback: delete host-only (per-render host) cookies
-            response.delete_cookie('access_token', path='/')
-            response.delete_cookie('refresh_token', path='/')
+
+
+
+        # Always use FRONTEND_COOKIE_DOMAIN if set
+        cookie_domain = getattr(settings, 'FRONTEND_COOKIE_DOMAIN', None)
+        logger.debug("LogoutView: using cookie domain %r", cookie_domain)
+
+
+        # delete both access and refresh tokens under the same domain
+        response.delete_cookie(
+            key='access_token',
+            path='/',
+            domain=cookie_domain
+        )
+        response.delete_cookie(
+            key='refresh_token',
+            path='/',
+            domain=cookie_domain
+        )
+
         return response
