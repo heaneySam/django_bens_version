@@ -45,5 +45,5 @@ urlpatterns = [
 
     # API endpoints from users app (Currently only User List)
     path('api/', include('apps.users.urls')), # Includes /api/users/list/
-    path('api/', include('apps.risks.urls')), # Includes /api/risks/
+    path('api/risks/', include('apps.risks.urls')), # Includes /api/risks/
 ]

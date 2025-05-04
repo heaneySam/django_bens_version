@@ -63,7 +63,10 @@ INSTALLED_APPS = [
     # "api",  # removed: models moved to apps.risks
     "apps.users",
     "apps.risks",
-]
+    'apps.risks_core',
+    'apps.risks_credit_political',
+    'apps.risks_directors_officers',
+    ]
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
