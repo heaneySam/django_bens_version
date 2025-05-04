@@ -30,6 +30,7 @@ from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 import os
 from rest_framework_simplejwt.exceptions import TokenError
+from .services import UserService, MagicLinkService, TokenService
 
 logger = logging.getLogger(__name__)
 
@@ -56,55 +57,19 @@ class RequestMagicLinkView(APIView):
     serializer_class = RequestMagicLinkSerializer
 
     def post(self, request, *args, **kwargs):
-        # Debug: dump all URL route names and test reversing signup
-        url_names = list(get_resolver().reverse_dict.keys())
-        logger.debug("Available URL names: %s", url_names)
-        if 'account_signup' in url_names:
-            try:
-                signup_url = reverse('account_signup')
-                logger.debug("Reversed 'account_signup' -> %s", signup_url)
-            except Exception:
-                logger.exception("Failed to reverse 'account_signup'")
-        else:
-            logger.warning("'account_signup' not found in URL names; signup link reverse will fail")
-        logger.debug("RequestMagicLinkView POST data: %s", request.data)
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data['email']
-            # Ensure a user exists (create on the fly if needed)
             try:
-                user = User.objects.get(email=email)
-            except User.DoesNotExist:
-                user = User.objects.create_user(username=email, email=email)
-            logger.debug("Using user %r for magic link initiation", user)
-            # Log signature and inputs for debugging
-            logger.debug("Initiate signature: %s", inspect.signature(flows.login_by_code.LoginCodeVerificationProcess.initiate))
-            logger.debug("Initiating login-by-code: user=%r, email=%s", user, email)
-            try:
-                # Create a MagicLink and build backend confirmation URL
-                magic_link = MagicLink.objects.create(user=user)
-                token = magic_link.token
-                confirm_url = f"{request.scheme}://{request.get_host()}/api/auth/magic/confirm/?token={token}"
-                site = Site.objects.get_current()
-                email_context = {
-                    'site_name': site.name,
-                    'site_domain': site.domain,
-                    'magic_link_url': confirm_url,
-                    'expiry_minutes': settings.MAGIC_LINK_EXPIRY_MINUTES,
-                    'user': user,
-                }
-                subject = render_to_string('account/email/magic_link_subject.txt', email_context).strip()
-                message = render_to_string('account/email/magic_link_message.txt', email_context)
-                send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [email])
-                logger.info("Magic link sent to %s", email)
+                user = UserService.get_or_create_user_by_email(email)
+                magic_link = MagicLinkService.create_magic_link(user)
+                confirm_url = MagicLinkService.build_confirm_url(magic_link.token, request)
+                MagicLinkService.send_magic_link_email(user, confirm_url)
                 return Response({"detail": "Magic link sent. Check your email."}, status=status.HTTP_200_OK)
-            except Exception as e:
-                logger.exception("Exception during magic link creation for %s", email)
+            except Exception:
+                logger.exception("Failed to create and send magic link for %s", email)
                 return Response({"detail": "Failed to create magic link."}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            logger.warning("RequestMagicLinkSerializer errors: %s", serializer.errors)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # ConfirmMagicLinkView: DRF-powered HTML GET form + JSON POST
 @method_decorator(csrf_exempt, name='dispatch')
@@ -116,39 +81,21 @@ class ConfirmMagicLinkView(APIView):
     renderer_classes   = [TemplateHTMLRenderer, JSONRenderer]
 
     def get(self, request, *args, **kwargs):
-        # Debug: log incoming token and cookies
         token = request.GET.get('token')
-        logger.debug("ConfirmMagicLinkView GET called. token=%s", token)
-        logger.debug("Incoming request cookies: %s", request.COOKIES)
-        # Validate magic link and issue JWT tokens as cookies
         try:
-            magic_link = MagicLink.objects.get(token=token)
-        except MagicLink.DoesNotExist:
+            tokens = MagicLinkService.confirm_magic_link_and_issue_tokens(token)
+        except MagicLinkService.InvalidMagicLink:
             return redirect(f"{settings.FRONTEND_URL}/?error=invalid_link")
-        expiry = magic_link.created_at + timedelta(minutes=settings.MAGIC_LINK_EXPIRY_MINUTES)
-        if timezone.now() > expiry or magic_link.used:
+        except MagicLinkService.ExpiredMagicLink:
             return redirect(f"{settings.FRONTEND_URL}/?error=expired_link")
-        magic_link.used = True
-        magic_link.save()
-        user = magic_link.user
-        # Issue JWT tokens for the user
-        refresh = RefreshToken.for_user(user)
-        logger.debug("Issuing JWT tokens for user %s: access=%s refresh=%s", user.pk, refresh.access_token, refresh)
-        # Prepare token payload for proxy use
-        token_data = {
-            'access_token': str(refresh.access_token),
-            'refresh_token': str(refresh),
-        }
-        # If the client expects JSON (proxy), return tokens and skip cookie-setting
+
+        # JSON client
         accept_header = request.META.get('HTTP_ACCEPT', '')
         if 'application/json' in accept_header:
-            return Response(token_data, status=status.HTTP_200_OK)
-        # Else fall back to HTML flow: set backend-domain cookies and redirect
+            return Response(tokens, status=status.HTTP_200_OK)
+
+        # HTML client: set cookies and redirect
         response = HttpResponseRedirect(f"{settings.FRONTEND_URL}")
-        # Debug: list all Set-Cookie headers before sending
-        for name, morsel in response.cookies.items():
-            logger.debug("Set-Cookie header: %s", morsel.OutputString())
-        # Determine cookie attributes based on environment
         secure_cookie = not settings.DEBUG
         samesite_mode = 'Lax' if settings.DEBUG else 'None'
         cookie_kwargs = {
@@ -156,16 +103,10 @@ class ConfirmMagicLinkView(APIView):
             'secure': secure_cookie,
             'samesite': samesite_mode,
             'path': '/',
-            'domain': settings.FRONTEND_COOKIE_DOMAIN,  # e.g. ".riskwizard.dev"
-
+            'domain': settings.FRONTEND_COOKIE_DOMAIN,
         }
-        # Set JWT cookies with appropriate attributes for HTML clients
-        response.set_cookie('access_token', str(refresh.access_token), **cookie_kwargs)
-        response.set_cookie('refresh_token', str(refresh), **cookie_kwargs)
-        for name, value in response.items():
-            logger.debug(f"Response header: {name}: {value}")
-        for name, morsel in response.cookies.items():
-            logger.debug(f"Set-Cookie header: {morsel.OutputString()}")
+        response.set_cookie('access_token', tokens['access_token'], **cookie_kwargs)
+        response.set_cookie('refresh_token', tokens['refresh_token'], **cookie_kwargs)
         return response
 
     def post(self, request, *args, **kwargs):
@@ -211,26 +152,18 @@ class TokenRefreshView(APIView):
 
     def post(self, request, *args, **kwargs):
         refresh_token = request.COOKIES.get('refresh_token')
-        logger.debug("TokenRefreshView invoked. refresh_token cookie: %s", refresh_token)
         if not refresh_token:
             return Response({"detail": "Refresh token not provided."}, status=status.HTTP_401_UNAUTHORIZED)
         try:
-            refresh = RefreshToken(refresh_token)
-        except TokenError:
-            logger.warning("TokenRefreshView invalid refresh token: %s", refresh_token)
+            new_access = TokenService.refresh_access_token(refresh_token)
+        except TokenService.InvalidToken:
             return Response({"detail": "Invalid refresh token."}, status=status.HTTP_401_UNAUTHORIZED)
-        access_token = str(refresh.access_token)
-        logger.debug("TokenRefreshView issuing new access_token: %s", access_token)
-        response = Response({"access_token": access_token}, status=status.HTTP_200_OK)
-        # Always use Secure and SameSite=None for cross-site cookie transmission
-        secure_cookie = True
-        samesite_mode = 'None'
+        response = Response({"access_token": new_access}, status=status.HTTP_200_OK)
         response.set_cookie(
-            'access_token',
-            access_token,
+            'access_token', new_access,
             httponly=True,
-            secure=secure_cookie,
-            samesite=samesite_mode,
+            secure=True,
+            samesite='None',
             path='/',
         )
         return response
@@ -255,27 +188,17 @@ class LogoutView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        # Blacklist the refresh token from the cookie, if present
         refresh_token = request.COOKIES.get('refresh_token')
         if refresh_token:
             try:
-                token = RefreshToken(refresh_token)
-                token.blacklist()
-                logger.debug("Blacklisted refresh token %s", refresh_token)
+                TokenService.blacklist_refresh_token(refresh_token)
             except Exception as e:
                 logger.exception("Failed to blacklist refresh token: %s", e)
 
-        # Prepare response and clear cookies on client, using FRONTEND_COOKIE_DOMAIN
         response = Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
 
-
-
-        # Always use FRONTEND_COOKIE_DOMAIN if set
         cookie_domain = getattr(settings, 'FRONTEND_COOKIE_DOMAIN', None)
-        logger.debug("LogoutView: using cookie domain %r", cookie_domain)
 
-
-        # delete both access and refresh tokens under the same domain
         response.delete_cookie(
             key='access_token',
             path='/',
