@@ -9,6 +9,7 @@ Here’s a quick‐reference “Django manage.py” cheat-sheet organized by tas
 | `django-admin startproject <projname>`            | Create a new Django project                                      |
 | `python manage.py startapp <appname>`             | Create a new Django app inside your project                      |
 | `pip install django`                              | Install Django into your venv                                    |
+| `pip install -r requirements.txt`         | Install project dependencies from requirements file           |
 
 ---
 

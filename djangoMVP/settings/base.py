@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'apps.risks_core',
     'apps.risks_credit_political',
     'apps.risks_directors_officers',
+    'apps.attachments_risks',
     ]
 
 MIDDLEWARE = [
@@ -195,6 +196,28 @@ SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SAMESITE = "None"
 CSRF_COOKIE_SECURE = False
 
+# AWS S3 Configuration
+# Ensure Boto3 and django-storages are installed: pip install boto3 django-storages
+# Replace placeholders with your actual credentials and bucket name.
+# Consider using environment variables or a secrets manager for sensitive keys.
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "your-aws-access-key-id")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "your-aws-secret-access-key")
+AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "your-s3-bucket-name")
+AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "us-east-1")  # Example: change to your bucket's region
+AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL", None) # Optional: for S3 compatible services
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com' # Or your CloudFront domain
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400', # Cache files for 1 day
+}
+AWS_DEFAULT_ACL = None # Default: None (use bucket policy). Or 'public-read' if needed.
+AWS_S3_FILE_OVERWRITE = False # Prevent overwriting files with the same name
+AWS_QUERYSTRING_AUTH = False # Do not add auth parameters to URLs
+
+# Static files storage (optional: if you want to serve static files from S3 too)
+# STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# Default file storage
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 # CORS defaults (override per environment)
 CORS_ALLOW_CREDENTIALS = True
