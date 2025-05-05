@@ -16,7 +16,8 @@ class CreditPoliticalRiskSerializer(serializers.ModelSerializer):
             'id', 'name', 'description', 'created_by', 'created_at', 'updated_at', # Inherited
             'unstructured_data', 'insured', 'country_of_insured', 'counterparty',
             'country_of_counterparty', 'product', 'country_of_risk',
-            'creation_date', 'inception_date', 'expiry_date', 'status', 'score' # New fields
+            'creation_date', 'inception_date', 'expiry_date', 'status', 'score', # Existing specific fields
+            'source_system', 'source_record_id' # Added integration fields
             # 'credit_score', # Removed
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at'] 

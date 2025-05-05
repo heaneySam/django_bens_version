@@ -37,6 +37,10 @@ class CreditPoliticalRisk(RiskBase):
     product = models.CharField(max_length=50, choices=PRODUCT_CHOICES, blank=True, default="")
     country_of_risk = models.CharField(max_length=255, blank=True, default="")
 
+    # Integration fields
+    source_system = models.CharField(max_length=255, blank=True, null=True, db_index=True, help_text="Identifier for the external system where the record originated.")
+    source_record_id = models.CharField(max_length=255, blank=True, null=True, db_index=True, help_text="The unique ID of the record in the source system.")
+
     # Use DateField for specific dates, allow nulls initially
     creation_date = models.DateField(null=True, blank=True, help_text="Business logic creation date, distinct from record creation time.")
     inception_date = models.DateField(null=True, blank=True)
