@@ -21,7 +21,11 @@ urlpatterns = [
     # Path for listing attachments for a specific risk and creating (uploading) a new one
     path('<uuid:risk_pk>/attachments/', 
          RiskAttachmentViewSet.as_view({'get': 'list', 'post': 'create'}), 
-         name='risk-attachments-list'),
+         name='risk-attachments-list-create'), # Renamed for clarity
+    # Path for generating a presigned URL for a specific risk
+    path('<uuid:risk_pk>/attachments/generate-upload-url/', 
+         RiskAttachmentViewSet.as_view({'post': 'generate_presigned_url'}), 
+         name='risk-attachments-generate-url'),
     # Path for retrieving a specific attachment for a specific risk
     path('<uuid:risk_pk>/attachments/<uuid:pk>/', 
          RiskAttachmentViewSet.as_view({'get': 'retrieve'}), # Add 'delete': 'destroy' if needed

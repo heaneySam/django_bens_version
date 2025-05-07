@@ -9,11 +9,13 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 from django.utils import timezone
 from django.contrib.auth import get_user_model
-from django.core.files import File
+# from django.core.files import File # No longer needed for direct S3 upload in this flow
 from django.db import connection
 from apps.risks_credit_political.models import CreditPoliticalRisk
-from apps.attachments_risks.models import Attachment
+from apps.attachments_risks.models import Attachment # Still used for type hints or direct query if any
+from apps.attachments_risks.services import AttachmentService # Import the service
 import os
+import uuid # Needed for S3 key generation
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -188,7 +190,7 @@ class Command(BaseCommand):
             # Keep polling 
 
     def process_whitespace_attachments(self, root_id, risk_instance, system_user, api_base_url, headers, s3_client, s3_bucket_name):
-        """Fetches attachment metadata, downloads content, and saves using the Attachment model."""
+        """Fetches attachment metadata, downloads content, uploads to S3, and saves Attachment record via service."""
         metadata_api_url = f"{api_base_url}/api/attachments/{root_id}"
         
         try:
@@ -208,52 +210,50 @@ class Command(BaseCommand):
                 identifier = attachment_info.get('identifier')
                 attachment_name = attachment_info.get('attachmentName', 'unknown_attachment')
                 content_type = attachment_info.get('content_type', 'application/octet-stream')
-                original_size = attachment_info.get('length') # Keep for potential future use
+                # original_size = attachment_info.get('length') # Keep for potential future use
 
                 if not parent_doc_id or not identifier:
                     logger.warning(f"Skipping attachment due to missing parentDocID or identifier for root_id {root_id}: {attachment_info}")
                     continue
 
-                # --- Download Content ---
                 content_api_url = f"{api_base_url}/api/attachments/{parent_doc_id}/{identifier}"
                 try:
                     logger.info(f"Downloading attachment: {attachment_name} ({identifier}) for Risk ID {risk_instance.id} from {content_api_url}")
                     content_response = requests.get(content_api_url, headers=headers, timeout=API_TIMEOUT_SECONDS, stream=True)
                     content_response.raise_for_status()
 
-                    # --- Create Attachment record and Save File --- 
-                    # The save() method on the FileField handles the upload to S3 via risk_attachment_path
-                    try:
-                        # FileField needs a name for the save() method, 
-                        # but risk_attachment_path generates the final storage path.
-                        # Use the original filename or a temporary unique name.
-                        _, ext = os.path.splitext(attachment_name)
-                        temp_filename = f"{identifier}{ext}" # Temporary name for the save method
+                    # --- Generate S3 Key --- 
+                    _, ext = os.path.splitext(attachment_name)
+                    # Ensure risk_instance.id is string for path construction if it's UUID
+                    s3_key = f"risks/credit-political/{str(risk_instance.id)}/{uuid.uuid4()}{ext}"
 
-                        attachment = Attachment(
-                            risk=risk_instance,
-                            uploaded_by=system_user,
-                            original_filename=attachment_name,
-                            description=f"Downloaded from Whitespace (Identifier: {identifier})",
-                            content_type=content_type
-                        )
-                        # Create a Django File object from the downloaded content
-                        django_file = File(BytesIO(content_response.content), name=temp_filename)
-                        
-                        # Save the attachment instance. This triggers the upload.
-                        attachment.file = django_file # Assign the file object
-                        attachment.save() # Save the model instance and the file
-                        
-                        logger.info(f"Successfully created Attachment record and uploaded file for {attachment_name} (Risk ID: {risk_instance.id}) to {attachment.file.name}")
+                    # --- Upload content directly to S3 --- 
+                    logger.info(f"Uploading {attachment_name} to S3 key: {s3_key} for Risk ID {risk_instance.id}")
+                    s3_client.upload_fileobj(
+                        Fileobj=BytesIO(content_response.content),
+                        Bucket=s3_bucket_name,
+                        Key=s3_key,
+                        ExtraArgs={'ContentType': content_type}
+                    )
+                    logger.info(f"Successfully uploaded {attachment_name} to S3.")
 
-                    except Exception as e:
-                        logger.exception(f"Failed to create Attachment or upload file for {attachment_name} (Risk ID: {risk_instance.id}): {e}")
-                    # --- End Create Attachment --- 
-                        
+                    # --- Create Attachment record via AttachmentService --- 
+                    AttachmentService.create_attachment(
+                        risk=risk_instance,
+                        s3_key=s3_key,
+                        original_filename=attachment_name,
+                        content_type=content_type,
+                        uploaded_by=system_user,
+                        description=f"Downloaded from Whitespace (Identifier: {identifier})"
+                    )
+                    logger.info(f"Successfully created Attachment record for {attachment_name} (Risk ID: {risk_instance.id}) linked to S3 key: {s3_key}")
+
                 except requests.exceptions.RequestException as e:
                     logger.error(f"Failed to download attachment content for {identifier} ({attachment_name}) Risk ID {risk_instance.id}: {e}")
+                except ClientError as e:
+                    logger.error(f"Failed to upload attachment {attachment_name} to S3 for Risk ID {risk_instance.id}: {e}")
                 except Exception as e:
-                     logger.exception(f"An unexpected error occurred during attachment download for {identifier} ({attachment_name}) Risk ID {risk_instance.id}: {e}")
+                     logger.exception(f"An unexpected error occurred during processing attachment {identifier} ({attachment_name}) Risk ID {risk_instance.id}: {e}")
 
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to fetch attachment metadata for {root_id} (Risk ID: {risk_instance.id}): {e}")

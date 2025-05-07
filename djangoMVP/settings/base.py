@@ -36,7 +36,7 @@ load_dotenv(BASE_DIR / '.env')
 
 # SECURITY
 # Placeholder secret key; override via environment variable in production
-SECRET_KEY = os.getenv("SECRET_KEY", "EXAMPLESECRETKEY")
+SECRET_KEY = os.getenv("SECRET_KEY")
 # DEBUG is off by default; enable in development
 DEBUG = False
 
@@ -204,10 +204,11 @@ AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "your-aws-access-key-id")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "your-aws-secret-access-key")
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "your-s3-bucket-name")
 AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "us-east-1")  # Example: change to your bucket's region
+AWS_S3_SIGNATURE_VERSION = os.getenv("AWS_S3_SIGNATURE_VERSION", 's3v4') # Added for S3 client configuration
 AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL", None) # Optional: for S3 compatible services
 AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com' # Or your CloudFront domain
 AWS_S3_OBJECT_PARAMETERS = {
-    'CacheControl': 'max-age=86400', # Cache files for 1 day
+    'CacheControl': os.getenv('S3_CACHE_CONTROL_VALUE', 'max-age=86400'),
 }
 AWS_DEFAULT_ACL = None # Default: None (use bucket policy). Or 'public-read' if needed.
 AWS_S3_FILE_OVERWRITE = False # Prevent overwriting files with the same name
