@@ -15,7 +15,9 @@ ALLOWED_HOSTS = [
 # tells Django which origins can make cross-site HTTP requests.
 CORS_ALLOWED_ORIGINS = [
     "https://medguides.co.uk",
-    "https://medguides.co.uk",
+    "https://www.medguides.co.uk",
+    "https://api.medguides.co.uk",
+    "https://app.medguides.co.uk",
     "https://medguides-staging.onrender.com",
 ]
 
@@ -23,6 +25,7 @@ CORS_ALLOWED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS = [
     "https://medguides.co.uk",
     "https://www.medguides.co.uk", 
+    "https://app.medguides.co.uk",
     "https://medguides-staging.onrender.com",  # your actual front-end origin
 ]
 
