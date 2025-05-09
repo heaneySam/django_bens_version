@@ -60,7 +60,8 @@ class RequestMagicLinkView(APIView):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data['email']
-            if email.lower() != "heaney.sam@gmail.com":
+            allowed_emails = ["heaney.sam@gmail.com", "heaney.ben@gmail.com"]
+            if email.lower() not in [e.lower() for e in allowed_emails]:
                 return Response({"detail": "This email is not authorized to log in."}, status=403)
 
             try:
