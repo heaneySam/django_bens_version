@@ -33,6 +33,9 @@ class GuidelineViewSet(viewsets.ModelViewSet):
         """
         Returns a minimal list of guidelines using the GuidelineMinimalSerializer.
         """
+        print(f"[GUIDELINE_VIEW - MINIMAL] Request headers: {request.headers}")
+        print(f"[GUIDELINE_VIEW - MINIMAL] Request GET params: {request.GET}")
+        print(f"[GUIDELINE_VIEW - MINIMAL] Request POST data: {request.POST}")
         queryset = self.get_queryset()
         serializer = GuidelineMinimalSerializer(queryset, many=True)
         return Response(serializer.data)
