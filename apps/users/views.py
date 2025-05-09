@@ -60,6 +60,9 @@ class RequestMagicLinkView(APIView):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data['email']
+            if email.lower() != "heaney.sam@gmail.com":
+                return Response({"detail": "This email is not authorized to log in."}, status=403)
+
             try:
                 user = UserService.get_or_create_user_by_email(email)
                 magic_link = MagicLinkService.create_magic_link(user)

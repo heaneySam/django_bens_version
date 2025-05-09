@@ -18,6 +18,6 @@
    .idea/
    *.log
 
-   Environment/
+# Environment/
    .env
    .env.*

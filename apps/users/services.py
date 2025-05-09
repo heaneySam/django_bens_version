@@ -57,6 +57,8 @@ class MagicLinkService:
         """
         Send the magic link email to the user.
         """
+        print(f"[DEBUG] send_magic_link_email called with user: {user} (email: {getattr(user, 'email', None)})")
+        print(f"[DEBUG] send_magic_link_email called with confirm_url: {confirm_url}")
         site = Site.objects.get_current()
         context = {
             'site_name': site.name,

@@ -30,10 +30,12 @@ import dj_database_url
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+# print("[DEBUG] Loading .env from:", Path(__file__).resolve().parent.parent.parent / '.env')
+load_dotenv(Path(__file__).resolve().parent.parent.parent / '.env')
+# print("[DEBUG] SECRET_KEY:", os.getenv("SECRET_KEY"))
+# print("[DEBUG] RESEND_API_KEY:", os.getenv("RESEND_API_KEY"))
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # Load environment variables from a .env file if present (for local development)
-load_dotenv(BASE_DIR / '.env')
-
 # SECURITY
 # Placeholder secret key; override via environment variable in production
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -62,11 +64,8 @@ INSTALLED_APPS = [
 
     # "api",  # removed: models moved to apps.risks
     "apps.users",
-    "apps.risks",
-    'apps.risks_core',
-    'apps.risks_credit_political',
-    'apps.risks_directors_officers',
-    'apps.attachments_risks',
+    "apps.guidelines",
+
     ]
 
 MIDDLEWARE = [
@@ -110,19 +109,19 @@ DATABASES = {
 }
 
 # Override with PostgreSQL when specific PostgreSQL host environment variables are set
-postgres_host = os.getenv('POSTGRES_HOST') or os.getenv('PGHOST')
-if postgres_host:
-    DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB') or os.getenv('PGDATABASE') or 'postgres',
-        'USER': os.getenv('POSTGRES_USER') or os.getenv('PGUSER') or 'postgres',
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD') or os.getenv('PGPASSWORD') or '',
-        'HOST': postgres_host,
-        'PORT': os.getenv('POSTGRES_PORT') or os.getenv('PGPORT') or '5432',
-        'OPTIONS': {
-            'sslmode': os.getenv('POSTGRES_SSLMODE', os.getenv('PGSSLMODE', 'require')),
-        },
-    }
+# postgres_host = os.getenv('DATABASE_URL')
+# if postgres_host:
+#     DATABASES['default'] = {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': os.getenv('POSTGRES_DB') or os.getenv('PGDATABASE') or 'postgres',
+#         'USER': os.getenv('POSTGRES_USER') or os.getenv('PGUSER') or 'postgres',
+#         'PASSWORD': os.getenv('POSTGRES_PASSWORD') or os.getenv('PGPASSWORD') or '',
+#         'HOST': postgres_host,
+#         'PORT': os.getenv('POSTGRES_PORT') or os.getenv('PGPORT') or '5432',
+#         'OPTIONS': {
+#             'sslmode': os.getenv('POSTGRES_SSLMODE', os.getenv('PGSSLMODE', 'require')),
+#         },
+#     }
 
 # Use DATABASE_URL if provided
 database_url = os.getenv('DATABASE_URL')
@@ -171,7 +170,7 @@ EMAIL_PORT = 587
 EMAIL_HOST_USER = "resend"
 EMAIL_HOST_PASSWORD = os.getenv("RESEND_API_KEY", "")
 EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = "app@creditriskwizard.com"
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "onboarding@resend.dev")
 
 # dj-rest-auth configuration
 REST_AUTH = {
